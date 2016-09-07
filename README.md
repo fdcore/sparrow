@@ -97,6 +97,27 @@ Output:
 SELECT * FROM user WHERE id = 99
 ```
 
+If you need select NULL field.
+
+```php
+echo $db->from('user')
+    ->where('username', NULL)
+    ->select()
+    ->sql();
+
+echo $db->from('user')
+    ->where('username !=', NULL)
+    ->select()
+    ->sql();
+```
+
+Output:
+
+```sql
+SELECT * FROM user WHERE username IS NULL
+SELECT * FROM user WHERE username IS NOT NULL
+```
+
 ### Custom Operators
 
 The default operator for where queries is `=`. You can use different operators by placing
@@ -386,6 +407,24 @@ Output:
 UPDATE user SET name = 'bob', email = 'bob@aol.com' WHERE id = 123
 ```
 
+Single update value in table.
+
+```php
+$where = array('id' => 123);
+
+echo $db->from('user')
+    ->where($where)
+    ->update('money', 456)
+    ->sql();
+```
+
+Output:
+
+```sql
+UPDATE user SET money = 456 WHERE id = 123
+```
+
+
 ### Delete Queries
 
 To build a delete query, use the `delete` function.
@@ -542,6 +581,12 @@ $posts = $db->sql('SELECT * FROM posts')->many();
 $user = $db->sql('SELECT * FROM user WHERE id = 123')->one();
 
 $db->sql('UPDATE user SET name = 'bob' WHERE id = 1')->execute();
+```
+
+Use placeholder
+
+```php
+$db->sql('UPDATE user SET name = ? WHERE id = ?', array('bob', 1))->execute(); // executed UPDATE user SET name = 'bob' WHERE id = 1
 ```
 
 ### Escaping Values
@@ -750,8 +795,8 @@ class User {
 
 ### Class Configuration
 
-* The `table` property represents the database table. This property is required. 
-* The `id_field` property represents the auto-incrementing identity field in the table. This property is required for saving and deleting records. 
+* The `table` property represents the database table. This property is required.
+* The `id_field` property represents the auto-incrementing identity field in the table. This property is required for saving and deleting records.
 * The `name_field` property is used for finding records by name. This property is optional.
 
 ### Loading Objects

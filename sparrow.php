@@ -42,6 +42,15 @@ class Sparrow {
     public $key_prefix = '';
 
     /**
+     * Bind marker
+     *
+     * Character used to identify values in a prepared statement.
+     *
+     * @var	string
+     */
+    public $bind_marker		= '?';
+
+    /**
      * Class constructor.
      */
     public function __construct() {
@@ -156,76 +165,77 @@ class Sparrow {
      * @return string Condition as a string
      * @throws Exception For invalid where condition
      */
-    protected function parseCondition($field, $value = null, $join = '', $escape = true) {
-        if (is_string($field)) {
-            if ($value === null) return $join.' '.trim($field);
+     protected function parseCondition($field, $value = null, $join = '', $escape = true) {
+         if (is_string($field)) {
 
-            $operator = '';
+             $operator = '';
 
-            if (strpos($field, ' ') !== false) {
-                list($field, $operator) = explode(' ', $field);
-            }
+             if (strpos($field, ' ') !== false) {
+                 list($field, $operator) = explode(' ', $field);
+             }
 
-            if (!empty($operator)) {
-                switch ($operator) {
-                    case '%':
-                        $condition = ' LIKE ';
-                        break;
+             if (!empty($operator)) {
+                 switch ($operator) {
+                     case '%':
+                         $condition = ' LIKE ';
+                         break;
 
-                    case '!%':
-                        $condition = ' NOT LIKE ';
-                        break;
+                     case '!%':
+                         $condition = ' NOT LIKE ';
+                         break;
 
-                    case '@':
-                        $condition = ' IN ';
-                        break;
+                     case '@':
+                         $condition = ' IN ';
+                         break;
 
-                    case '!@':
-                        $condition = ' NOT IN ';
-                        break;
-                    case '=':
-                        $condition = ' IS ';
-                        break;
-                    case '!=':
-                        $condition = ' IS NOT ';
-                        break;
+                     case '!@':
+                         $condition = ' NOT IN ';
+                         break;
 
-                    default:
-                        $condition = $operator;
-                }
-            }
-            else {
-                if ($value === null) $condition = ' IS '; else $condition = '=';
-            }
+                     case '=':
+                         $condition = ' IS ';
+                         break;
 
-            if (empty($join)) {
-                $join = ($field{0} == '|') ? ' OR' : ' AND';
-            }
+                     case '!=':
+                         $condition = ' IS NOT ';
+                         break;
 
-            if (is_array($value)) {
-                if (strpos($operator, '@') === false) $condition = ' IN ';
-                $value = '('.implode(',', array_map(array($this, 'quote'), $value)).')';
-            }
-            else {
-                $value = ($escape && !is_numeric($value)) ? $this->quote($value) : $value;
-            }
+                     default:
+                         $condition = $operator;
+                 }
+             }
+             else {
+                 if ($value === null) $condition = ' IS '; else $condition = '=';
+             }
 
-            if ($value === null) $value = 'NULL';
-            
-            return $join.' '.str_replace('|', '', $field).$condition.$value;
-        }
-        else if (is_array($field)) {
-            $str = '';
-            foreach ($field as $key => $value) {
-                $str .= $this->parseCondition($key, $value, $join, $escape);
-                $join = '';
-            }
-            return $str;
-        }
-        else {
-            throw new Exception('Invalid where condition.');
-        }
-    }
+             if (empty($join)) {
+                 $join = ($field{0} == '|') ? ' OR' : ' AND';
+             }
+
+             if (is_array($value)) {
+                 if (strpos($operator, '@') === false) $condition = ' IN ';
+                 $value = '('.implode(',', array_map(array($this, 'quote'), $value)).')';
+             }
+             else {
+                 $value = ($escape && !is_numeric($value)) ? $this->quote($value) : $value;
+             }
+
+             if ($value === null) $value = 'NULL';
+
+             return $join.' '.str_replace('|', '', $field).$condition.$value;
+         }
+         else if (is_array($field)) {
+             $str = '';
+             foreach ($field as $key => $value) {
+                 $str .= $this->parseCondition($key, $value, $join, $escape);
+                 $join = '';
+             }
+             return $str;
+         }
+         else {
+             throw new Exception('Invalid where condition.');
+         }
+     }
 
     /**
      * Sets the table.
@@ -519,9 +529,10 @@ class Sparrow {
      * Builds an update query.
      *
      * @param string|array $data Array of keys and values, or string literal
+     * @param string $value2 value if first argument is key
      * @return object Self reference
      */
-    public function update($data) {
+    public function update($data, $value2=false) {
         $this->checkTable();
 
         if (empty($data)) return $this;
@@ -534,7 +545,12 @@ class Sparrow {
             }
         }
         else {
+          if($value2){
+            $values[] = (is_numeric($data)) ? $value2 : $data.'='.$this->quote($value2);
+          } else {
             $values[] = (string)$data;
+          }
+
         }
 
         $this->sql(array(
@@ -571,18 +587,85 @@ class Sparrow {
     }
 
     /**
+     * Compile Bindings
+     *
+     * @param	string	the sql statement
+     * @param	array	an array of bind data
+     * @return	string
+     * @author EllisLab - CI
+     */
+    public function compile_binds($sql, $binds)
+    {
+      if (empty($binds) OR empty($this->bind_marker) OR strpos($sql, $this->bind_marker) === FALSE)
+      {
+        return $sql;
+      }
+      elseif ( ! is_array($binds))
+      {
+        $binds = array($binds);
+        $bind_count = 1;
+      }
+      else
+      {
+        // Make sure we're using numeric keys
+        $binds = array_values($binds);
+        $bind_count = count($binds);
+      }
+
+      // We'll need the marker length later
+      $ml = strlen($this->bind_marker);
+
+      // Make sure not to replace a chunk inside a string that happens to match the bind marker
+      if ($c = preg_match_all("/'[^']*'/i", $sql, $matches))
+      {
+        $c = preg_match_all('/'.preg_quote($this->bind_marker, '/').'/i',
+          str_replace($matches[0],
+            str_replace($this->bind_marker, str_repeat(' ', $ml), $matches[0]),
+            $sql, $c),
+          $matches, PREG_OFFSET_CAPTURE);
+
+        // Bind values' count must match the count of markers in the query
+        if ($bind_count !== $c)
+        {
+          return $sql;
+        }
+      }
+      elseif (($c = preg_match_all('/'.preg_quote($this->bind_marker, '/').'/i', $sql, $matches, PREG_OFFSET_CAPTURE)) !== $bind_count)
+      {
+        return $sql;
+      }
+
+      do
+      {
+        $c--;
+        $escaped_value = $this->quote($binds[$c]);
+        if (is_array($escaped_value))
+        {
+          $escaped_value = '('.implode(',', $escaped_value).')';
+        }
+        $sql = substr_replace($sql, $escaped_value, $matches[0][$c][1], $ml);
+      }
+      while ($c !== 0);
+
+      return $sql;
+    }
+
+    /**
      * Gets or sets the SQL statement.
      *
      * @param string|array SQL statement
      * @return string SQL statement
      */
-    public function sql($sql = null) {
+    public function sql($sql = null, $args=array()) {
         if ($sql !== null) {
             $this->sql = trim(
                 (is_array($sql)) ?
                     array_reduce($sql, array($this, 'build')) :
                     $sql
             );
+
+            if(count($args) > 0)
+              $this->sql = $this->compile_binds($this->sql, $args);
 
             return $this;
         }
