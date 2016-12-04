@@ -524,6 +524,60 @@ class Sparrow {
 
         return $this;
     }
+    /**
+     * Lock table.
+     * @link http://dev.mysql.com/doc/refman/5.7/en/lock-tables.html
+     * @param strong $lock_type Array of key and values to insert
+     * @return object Self reference
+     */
+    public function lock($lock_type="READ") {
+        $this->checkTable();
+
+        if($lock_type == '' || !in_array($lock_type, array("READ", "WRITE"))){
+          $lock_type = "READ";
+        }
+
+        $this->sql(array(
+            'LOCK TABLES',
+            $this->table,
+            $lock_type
+        ));
+
+        return $this->execute();
+    }
+
+    /**
+     * Unlock table.
+     * @link http://dev.mysql.com/doc/refman/5.7/en/lock-tables.html
+     * @return object Self reference
+     */
+    public function unlock() {
+        $this->checkTable();
+        $this->sql(array(
+            'UNLOCK TABLES'
+        ));
+        return $this->execute();
+    }
+
+    /**
+     * Transactions.
+     * @link http://dev.mysql.com/doc/refman/5.7/en/commit.html
+     * @return object Self reference
+     */
+    public function start_trans() {
+        $this->sql(array('START TRANSACTION'));
+        return $this;
+    }
+
+    public function commit() {
+        $this->sql(array('COMMIT'));
+        return $this;
+    }
+
+    public function rollback() {
+        $this->sql(array('ROLLBACK'));
+        return $this;
+    }
 
     /**
      * Builds an update query.

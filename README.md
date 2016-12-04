@@ -1,5 +1,4 @@
 # Sparrow
-
 Sparrow is a simple but powerful database toolkit. Sparrow is a fluent SQL builder, database abstraction layer, cache manager,
 query statistics generator, and micro-ORM all rolled into a single class file.
 
@@ -29,7 +28,6 @@ SELECT * FROM user
 ```
 
 ### Method Chaining
-
 Sparrow allows you to chain methods together, so you can instead do:
 
 ```php
@@ -37,7 +35,6 @@ echo $db->from('user')->select()->sql();
 ```
 
 ### Where Conditions
-
 To add where conditions to your query, use the `where` function.
 
 ```php
@@ -119,7 +116,6 @@ SELECT * FROM user WHERE username IS NOT NULL
 ```
 
 ### Custom Operators
-
 The default operator for where queries is `=`. You can use different operators by placing
 them after the field declaration.
 
@@ -137,7 +133,6 @@ SELECT * FROM user WHERE id > 123;
 ```
 
 ### OR Queries
-
 By default where conditions are joined together by `AND` keywords. To use OR instead, simply
 place a `|` delimiter before the field name.
 
@@ -156,7 +151,6 @@ SELECT * FROM user WHERE id < 10 OR id > 20
 ```
 
 ### LIKE Queries
-
 To build a LIKE query you can use the special `%` operator.
 
 ```php
@@ -188,7 +182,6 @@ SELECT * FROM user WHERE name NOT LIKE '%bob%'
 ```
 
 ### IN Queries
-
 To use an IN statement in your where condition, use the special `@` operator
 and pass in an array of values.
 
@@ -221,7 +214,6 @@ SELECT * FROM user WHERE id NOT IN (10, 20, 30)
 ```
 
 ### Selecting Fields
-
 To select specific fields, pass an array in to the `select` function.
 
 ```php
@@ -237,7 +229,6 @@ SELECT id, name FROM user
 ```
 
 ### Limit and Offset
-
 To add a limit or offset to a query, you can use the `limit` and `offset` functions.
 
 ```php
@@ -269,7 +260,6 @@ SELECT * FROM user LIMIT 50 OFFSET 10
 ```
 
 ### Distinct
-
 To add a DISTINCT keyword to your query, call the `distinct` function.
 
 ```php
@@ -286,7 +276,6 @@ SELECT DISTINCT name FROM user
 ```
 
 ### Table Joins
-
 To add a table join, use the `join` function and pass in an array of fields to join on.
 
 ```php
@@ -321,7 +310,6 @@ SELECT * FROM user INNER JOIN role ON role.id = user.id AND role.id > 10
 ```
 
 ### Sorting
-
 To add sorting to a query, use the `sortAsc` and `sortDesc` functions.
 
 ```php
@@ -353,7 +341,6 @@ SELECT * FROM user ORDER BY rank ASC, name ASC
 ```
 
 ### Grouping
-
 To add a field to group by, use the `groupBy` function.
 
 ```php
@@ -370,7 +357,6 @@ SELECT id, count(*) FROM user GROUP BY points;
 ```
 
 ### Insert Queries
-
 To build an insert query, pass in an array of data to the `insert` function.
 
 ```php
@@ -388,7 +374,6 @@ INSERT INTO user (id, name) VALUES (123, 'bob')
 ```
 
 ### Update Queries
-
 To build an update query, pass in an array of data to the `update` function.
 
 ```php
@@ -424,9 +409,7 @@ Output:
 UPDATE user SET money = 456 WHERE id = 123
 ```
 
-
 ### Delete Queries
-
 To build a delete query, use the `delete` function.
 
 ```php
@@ -443,7 +426,6 @@ DELETE FROM user WHERE id = 123
 ```
 
 ## Executing Queries
-
 Sparrow can also execute the queries it builds. You will need to call the `setDb()` method with either
 a connection string, an array of connection information, or a connection object.
 
@@ -504,7 +486,6 @@ $db->setDb($pdo);
 ```
 
 ### Fetching records
-
 To fetch multiple records, use the `many` function.
 
 ```php
@@ -555,7 +536,6 @@ $row = $db->from('user')
 ```
 
 ### Non-queries
-
 For non-queries like update, insert and delete, use the `execute` function after building your query.
 
 ```php
@@ -572,7 +552,6 @@ DELETE FROM user WHERE id = 123
 ```
 
 ### Custom Queries
-
 You can also run raw SQL by passing it to the `sql` function.
 
 ```php
@@ -586,11 +565,49 @@ $db->sql('UPDATE user SET name = 'bob' WHERE id = 1')->execute();
 Use placeholder
 
 ```php
-$db->sql('UPDATE user SET name = ? WHERE id = ?', array('bob', 1))->execute(); // executed UPDATE user SET name = 'bob' WHERE id = 1
+$db->sql('UPDATE user SET name = ? WHERE id = ?', array('bob', 1))->execute();
+
+// executed UPDATE user SET name = 'bob' WHERE id = 1
+```
+
+### Transactions
+Use transactions only on innoDB tables.
+
+```php
+
+// start transactions
+$db->start_trans()->execute();
+
+// any queries
+
+$db->from('user')
+    ->where('user', 123)
+    ->update('price', 5)
+    ->execute();
+
+// commit queries
+$db->commit()->execute();
+// or
+$db->rollback()->execute();
+```
+
+### LOCKS
+MySQL enables client sessions to acquire table locks explicitly for the purpose of cooperating with other sessions for access to tables or to prevent other sessions from modifying tables during periods when a session requires exclusive access to them. A session can acquire or release locks only for itself. One session cannot acquire locks for another session or release locks held by another session.
+
+Method `lock` have params **READ** or **WRITE** for lock type.
+
+```php
+
+$db->from('users')->lock('WRITE');
+$db->from('users')
+    ->where('user', 123)
+    ->update('price', 1)
+    ->execute();
+
+$db->from('users')->unlock();
 ```
 
 ### Escaping Values
-
 Sparrow's SQL building functions automatically quote and escape values to prevent SQL injection.
 To quote and escape values manually, like when you're writing own queries, you can use the `quote` function.
 
@@ -607,7 +624,6 @@ SELECT * FROM user WHERE name = 'O\'Dell'
 ```
 
 ### Query Properties
-
 After executing a query, several property values will be populated which you can access directly.
 
 ```php
@@ -627,7 +643,6 @@ $db->affected_rows;
 These values are reset every time a new query is executed.
 
 ### Helper Methods
-
 To get a count of rows in a table.
 
 ```php
@@ -659,7 +674,6 @@ $avg = $db->from('employee')->sum('salary');
 ```
 
 ### Direct Access
-
 You can also access the database object directly by using the  `getDb` function.
 
 ```php
@@ -669,7 +683,6 @@ mysql_info($mysql);
 ```
 
 ## Caching
-
 To enable caching, you need to use the `setCache` method with a connection string or connection object.
 
 Using a connection string:
@@ -698,7 +711,6 @@ $users = $db->from('user')->many($key);
 ```
 
 ### Cache Types
-
 The supported caches are `memcache`, `memcached`, `apc`, `xcache`, `file` and `memory`.
 
 To use `memcache` or `memcached`, you need to use the following connection string:
@@ -724,7 +736,6 @@ Note that local directories must be prefixed with `./`.
 The default cache is `memory` and only lasts the duration of the script.
 
 ### Cache Expiration
-
 To cache data only for a set period of time, you can pass in an additional parameter which represents the expiraton time in seconds.
 
 ```php
@@ -741,7 +752,6 @@ In the above example, we are getting a list of the top 100 highest scoring users
 You can pass the expiration parameter to any of the query methods that take a cache key parameter.
 
 ### Direct Access
-
 You can access the cache object directly by using the `getCache` function.
 
 ```php
@@ -775,7 +785,6 @@ $db->flush();
 ```
 
 ## Using Objects
-
 Sparrow also provides some functionality for working with objects. Just define a class with public properties to
 represent database fields and static variables to describe the database relationship.
 
@@ -800,7 +809,6 @@ class User {
 * The `name_field` property is used for finding records by name. This property is optional.
 
 ### Loading Objects
-
 To define the object use the `using` function and pass in the class name.
 
 ```php
@@ -850,7 +858,6 @@ If the `find` method retrieves multiple records, it will return an array of obje
 instead of a single object.
 
 ### Saving Objects
-
 To save an object, just populate your object properties and use the `save` function.
 
 ```php
@@ -911,7 +918,6 @@ UPDATE user SET email = 'bob@aol.com' WHERE id = 123
 ```
 
 ### Deleting Objects
-
 To delete an object, use the `remove` function.
 
 ```php
@@ -921,7 +927,6 @@ $db->remove($user);
 ```
 
 ### Advanced Finding
-
 You can use the sql builder functions to further define criteria for loading objects.
 
 ```php
@@ -946,7 +951,6 @@ $db->using('User')
 ```
 
 ## Statistics
-
 Sparrow has built in query statistics tracking. To enable it, just set the `stats_enabled` property.
 
 ```php
@@ -1003,7 +1007,6 @@ array(6) {
 ```
 
 ## Debugging
-
 When Sparrow encounters an error while executing a query, it will raise an exception with the database
 error message. If you want to display the generated SQL along with the error message, set the `show_sql` property.
 
@@ -1012,9 +1015,7 @@ $db->show_sql = true;
 ```
 
 ## Requirements
-
 Sparrow requires PHP 5.1 or greater.
 
 ## License
-
 Sparrow is released under the [MIT](https://github.com/mikecao/sparrow/blob/master/LICENSE) license.
