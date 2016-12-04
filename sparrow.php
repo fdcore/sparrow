@@ -599,7 +599,7 @@ class Sparrow {
             }
         }
         else {
-          if($value2){
+          if($value2 !== false){
             $values[] = (is_numeric($data)) ? $value2 : $data.'='.$this->quote($value2);
           } else {
             $values[] = (string)$data;
