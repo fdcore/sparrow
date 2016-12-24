@@ -191,15 +191,6 @@ class Sparrow {
                      case '!@':
                          $condition = ' NOT IN ';
                          break;
-
-                     case '=':
-                         $condition = ' IS ';
-                         break;
-
-                     case '!=':
-                         $condition = ' IS NOT ';
-                         break;
-
                      default:
                          $condition = $operator;
                  }
